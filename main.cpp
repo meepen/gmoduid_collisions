@@ -2,6 +2,7 @@
 
 #define MAX_THREADS (threads)
 #define MAX_IDS (1000000000)
+#define increase_wait (1000000)
 
 typedef unsigned long CRC32_t;
 
@@ -10,6 +11,7 @@ typedef unsigned long CRC32_t;
 #include <nmmintrin.h>
 #include <Windows.h>
 #include <conio.h>
+#include <atomic>
 
 unsigned long threads = 2;
 
@@ -45,7 +47,7 @@ inline void CalculateUniqueID(CRC32_t *crc, char *id, int len, char which)
 
 clock_t start_clock = 0;
 
-long long *done = 0;
+std::atomic_llong *done = 0;
 long long max = 0;
 long long completed = 0;
 
@@ -75,11 +77,13 @@ DWORD __stdcall Search(LPVOID _threadnum)
 	long long start = (threadnum - 1) * (MAX_IDS / MAX_THREADS);
 	long long end = (threadnum) * (MAX_IDS / MAX_THREADS);
 	max += (end - start) * 2;
-	long long &increase = done[threadnum - 1];
+	std::atomic_llong &increase = done[threadnum - 1];
 	char num[64];
 	printf("Thread %i: %I64d - %I64d\n", threadnum, start, end);
 
 	CRC32_t tcrc;
+
+	long a = increase_wait;
 	
 	while (++start <= end)
 	{
@@ -94,7 +98,11 @@ DWORD __stdcall Search(LPVOID _threadnum)
 		{
 			printf("Found id: STEAM_0:1:%I64d\n", start);
 		}
-		increase++;
+		if ((--a) == 0)
+		{
+			a = increase_wait;
+			increase += increase_wait;
+		}
 	}
 	printf("Done with thread %i\n", threadnum);
 	return 0;
@@ -129,7 +137,7 @@ int __stdcall main(void)
 	if (strstr(cmdline, "-threads"))
 		sscanf(strstr(cmdline, "-threads"), "-threads %i", &threads);
 
-	done = new long long[threads];
+	done = new std::atomic_llong[threads];
 	for (unsigned long i = 0; i < threads; i++)
 		done[i] = 0;
 
@@ -156,7 +164,7 @@ int __stdcall main(void)
 	format_time(timestr, clock() - start_clock);
 	printf("Done! (%s)\n", timestr);
 
-	getch(); // pause
+	_getch(); // pause
 
 	return 0;
 }
