@@ -38,10 +38,9 @@ CRC32_t begin_crc[2];
 
 inline void CalculateUniqueID(CRC32_t *crc, char *id, int len, char which)
 {
-	char temp[64];
 	*crc = begin_crc[which];
 
-	CRC32_ProcessBuffer(crc, temp, len);
+	CRC32_ProcessBuffer(crc, id, len);
 	CRC32_Final(crc);
 }
 
