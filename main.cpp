@@ -3,6 +3,7 @@
 #define MAX_THREADS (threads)
 #define MAX_IDS (1000000000)
 #define increase_wait (1000000)
+#define increase_wait_rounded ((increase_wait / 10) * 10)
 
 typedef unsigned long CRC32_t;
 
@@ -36,12 +37,16 @@ inline void CRC32_Final(CRC32_t *pulCRC)
 
 CRC32_t begin_crc[2];
 
-inline void CalculateUniqueID(CRC32_t *crc, char *id, int len, char which)
+inline void CalculateUniqueID(CRC32_t *crc, char *id, int len, char which, CRC32_t *start = 0, bool finish = true)
 {
-	*crc = begin_crc[which];
+	if (start)
+		*crc = *start;
+	else
+		*crc = begin_crc[which];
 
 	CRC32_ProcessBuffer(crc, id, len);
-	CRC32_Final(crc);
+	if (finish)
+		CRC32_Final(crc);
 }
 
 clock_t start_clock = 0;
@@ -84,7 +89,7 @@ DWORD __stdcall Search(LPVOID _threadnum)
 
 	long a = increase_wait;
 	
-	while (++start <= end)
+	while ((start % 10) != 0)
 	{
 		int len = wsprintfA(num, "%I64d_gm", start); 
 		CalculateUniqueID(&tcrc, num, len, 0);
@@ -102,8 +107,68 @@ DWORD __stdcall Search(LPVOID _threadnum)
 			a = increase_wait;
 			increase += increase_wait;
 		}
+		start++;
 	}
 	increase += increase_wait - a;
+	a = increase_wait_rounded;
+	CRC32_t temp0_;
+	CRC32_t temp1_;
+	CRC32_t crc0, crc1;
+	while ((start + 10) < end)
+	{
+		int len = wsprintfA(num, "%I64d_gm", start);
+		char *num2 = num;
+		num2 += len - 4;
+		char &change = num[len - 4];
+
+		len -= 4;
+		if (len < 0)
+			len = 0;
+		CalculateUniqueID(&temp0_, num, len, 0, 0, false);
+		CalculateUniqueID(&temp1_, num, len, 1, 0, false);
+
+		for (int i = 0; i < 10; i++)
+		{
+			CalculateUniqueID(&crc0, num2, 4, 0, &temp0_);
+			CalculateUniqueID(&crc1, num2, 4, 0, &temp1_);
+			if (crc1 == crc)
+			{
+				printf("Found id: STEAM_0:1:%I64d\n", start + i);
+			}
+			if (crc0 == crc)
+			{
+				printf("Found id: STEAM_0:0:%I64d\n", start + i);
+			}
+			change++;
+		}
+		a -= 10;
+
+		if (a == 0)
+		{
+			a = increase_wait_rounded;
+			increase += increase_wait_rounded;
+		}
+
+		start += 10;
+	}
+	increase += increase_wait_rounded - a;
+
+	while (++start <= end)
+	{
+		int len = wsprintfA(num, "%I64d_gm", start);
+		CalculateUniqueID(&tcrc, num, len, 0);
+		if (crc == tcrc)
+		{
+			printf("Found id: STEAM_0:0:%I64d\n", start);
+		}
+		CalculateUniqueID(&tcrc, num, len, 1);
+		if (crc == tcrc)
+		{
+			printf("Found id: STEAM_0:1:%I64d\n", start);
+		}
+		increase++;
+	}
+
 	printf("Done with thread %i\n", threadnum);
 	return 0;
 }
