@@ -103,6 +103,7 @@ DWORD __stdcall Search(LPVOID _threadnum)
 			increase += increase_wait;
 		}
 	}
+	increase += increase_wait - a;
 	printf("Done with thread %i\n", threadnum);
 	return 0;
 }
