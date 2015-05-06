@@ -1,5 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#define LOOP_UNROLLING 
+// unroll loops 2 times
+// comment if it's slower
+// reason: it's only faster on some cpus
+
 #define MAX_THREADS (threads)
 #define MAX_IDS (10000000000)
 #define increase_wait (10000000)
@@ -7,27 +12,88 @@
 #define increase_wait_rounded ((increase_wait / loop_size) * loop_size)
 
 
+
+#ifdef LOOP_UNROLLING
+
+
+// only unroll 1x
+// unrolling more = long compile time & slower speeds
 #define LOOPME(n) \
-		for (int x = 0; x < 10; x++) \
+	for(int x = 0; x < 10; x++) \
+	{ \
+		for (int i = 0; i < 10; i++)  \
+		{ \
+		\
+			CalculateUniqueID(&crc0, num2, 6, 0, &temp0_); \
+			CalculateUniqueID(&crc1, num2, 6, 0, &temp1_); \
+			if (crc1 == crc) \
+			{ \
+				printf("Found id: STEAM_0:1:%I64d\n", start + i + x * 10 + n); \
+			} \
+			if (crc0 == crc) \
+			{ \
+				printf("Found id: STEAM_0:0:%I64d\n", start + i + x * 10 + n); \
+			} \
+			change++; \
+		} \
+		change2++; \
+		change = '0';\
+	}  \
+	change2 = '0';
+
+
+#define LOOP()\
+	LOOPME(000); \
+	change3 = '1';\
+	LOOPME(100);\
+	change3 = '2';\
+	LOOPME(200);\
+	change3 = '3';\
+	LOOPME(300);\
+	change3 = '4';\
+	LOOPME(400);\
+	change3 = '5';\
+	LOOPME(500);\
+	change3 = '6';\
+	LOOPME(600);\
+	change3 = '7';\
+	LOOPME(700);\
+	change3 = '8';\
+	LOOPME(800);\
+	change3 = '9';\
+	LOOPME(900);
+
+#else
+
+#define LOOP() \
+	for(int w = 0; w < 10; w++) \
+	{ \
+		for(int x = 0; x < 10; x++) \
 		{ \
 			for (int i = 0; i < 10; i++)  \
 			{ \
-				\
-					CalculateUniqueID(&crc0, num2, 6, 0, &temp0_); \
-					CalculateUniqueID(&crc1, num2, 6, 0, &temp1_); \
-					if (crc1 == crc) \
-					{ \
-					printf("Found id: STEAM_0:1:%I64d\n", start + i + x * 10 + n); \
-					} \
-					if (crc0 == crc) \
-					{ \
-					printf("Found id: STEAM_0:0:%I64d\n", start + i + x * 10 + n); \
-					} \
-					change++; \
+			\
+				CalculateUniqueID(&crc0, num2, 6, 0, &temp0_); \
+				CalculateUniqueID(&crc1, num2, 6, 0, &temp1_); \
+				if (crc1 == crc) \
+				{ \
+					printf("Found id: STEAM_0:1:%I64d\n", start + i + w * 100 + x * 10 + i); \
+				} \
+				if (crc0 == crc) \
+				{ \
+					printf("Found id: STEAM_0:0:%I64d\n", start + i + w * 100 + x * 10 + i); \
+				} \
+				change++; \
 			} \
-			change2++; \
 			change = '0'; \
-		}
+			change2++; \
+		} \
+		change3++; \
+		change2 = '0'; \
+	}
+
+
+#endif
 
 #include <string>
 #include <time.h>
@@ -167,25 +233,8 @@ DWORD __stdcall Search(LPVOID _threadnum)
 		CalculateUniqueID(&temp0_, num, len, 0, 0, false);
 		CalculateUniqueID(&temp1_, num, len, 1, 0, false);
 
-		LOOPME(000);
-		change3 = '1';
-		LOOPME(100);
-		change3 = '2';
-		LOOPME(200);
-		change3 = '3';
-		LOOPME(300);
-		change3 = '4';
-		LOOPME(400);
-		change3 = '5';
-		LOOPME(500);
-		change3 = '6';
-		LOOPME(600);
-		change3 = '7';
-		LOOPME(700);
-		change3 = '8';
-		LOOPME(800);
-		change3 = '9';
-		LOOPME(900);
+		LOOP();
+
 		a -= loop_size;
 
 		if (a == 0)
